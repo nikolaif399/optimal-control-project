@@ -7,8 +7,7 @@ N = length(link_length);
 M = size(obstacles, 1);
 
 for i = 1:N
-    T = fk(r,p,y,link_length,i);
-    frame_pos = T(1:3,4);
+    [~,frame_pos] = fk(r,p,y,link_length,i);
     X = [X frame_pos(1)];
     Y = [Y frame_pos(2)];
     Z = [Z frame_pos(3)];
