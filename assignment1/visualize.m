@@ -21,6 +21,7 @@ plot3(X,Y,Z, 'LineWidth', 1);
 grid
 [x,y,z] = sphere;
 C = zeros(length(x),length(x),3);
+C(:,:,1) = 1;
 
 for j = 1:M
     x0 = obstacles(j,1);
@@ -28,7 +29,7 @@ for j = 1:M
     z0 = obstacles(j,3);
     r = obstacles(j,4);
     
-    surf(x*r + x0, y*r + y0, z*r + z0, C)
+    surf(x*r + x0, y*r + y0, z*r + z0, C,'FaceAlpha',0.3,'EdgeColor','none')
 end
 
 axis equal

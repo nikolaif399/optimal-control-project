@@ -19,7 +19,7 @@ obstacles = [0.5 0 0 0.05];
 
 %% Part 1
 pos_targ = [0.4; 0; 0];
-ang_targ = eul2quat([0 0.5 0])';
+ang_targ = eul2quat([0 0 0])';
 
 target = [pos_targ;ang_targ];
 [r,p,y] = part1( target, link_length, min_roll, max_roll,...
