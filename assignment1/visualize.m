@@ -28,7 +28,6 @@ for j = 1:M
     y0 = obstacles(j,2);
     z0 = obstacles(j,3);
     r = obstacles(j,4);
-    
     surf(x*r + x0, y*r + y0, z*r + z0, C,'FaceAlpha',0.3,'EdgeColor','none')
 end
 

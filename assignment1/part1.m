@@ -24,7 +24,10 @@ rpy0 = rand(N, 3);
 options = optimoptions('fmincon','Display','iter','Algorithm','interior-point');
 problem.options = options;
 problem.solver = 'fmincon';
-problem.objective = @ (x) objective_fn(x,target,link_length);
+problem.objective = @ (x) objective_fn(x,target,link_length,...
+                                       min_roll, max_roll,...
+                                       min_pitch, max_pitch,...
+                                       min_yaw, max_yaw);
 %problem.nonlcon = @(x) ;
 problem.lb = [min_roll, min_pitch, min_yaw];
 problem.ub = [max_roll, max_pitch, max_yaw];
