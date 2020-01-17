@@ -5,7 +5,7 @@ function cost = objective_fn(x, target, link_length,min_roll, max_roll,...
 
 %% Relative weightings
 pos_cost = 10; % meters
-ang_cost = 100; % radians
+ang_cost = 50; % radians
 Q_state = diag([pos_cost, pos_cost, pos_cost, ang_cost, ang_cost, ang_cost]);
 
 cons_cost = 0.001; % radians

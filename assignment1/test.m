@@ -15,7 +15,8 @@ min_yaw = -pi*ones(3,1);
 max_yaw = pi*ones(3,1);
 link_length = [0.2;0.2;0.2];
 
-obstacles = [0.5 0 0 0.05];
+obstacles = [0.2 0 0 0.03;
+             0.5 0 0 0.03];
 
 %% Part 1
 pos_targ = [0.4; 0; 0];
