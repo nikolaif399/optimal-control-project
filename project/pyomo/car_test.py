@@ -26,9 +26,9 @@ N = 1000
 T = 10
 dt = T/N
 
-obsx = -3
-obsy = 0
-obsr = 1
+obsx = 5
+obsy = 2
+obsr = 3
 obsr2 = pow(obsr, 2)
 
 m = ConcreteModel()
@@ -77,7 +77,8 @@ def path_constraint_fn(m,k):
   yerror = (obsy - m.x[_Y,k])
   return (pow(xerror, 2) + pow(yerror, 2) >= obsr2)
 
-#m.path_constraint = Constraint(m.kx, rule=path_constraint_fn)
+m.path_constraint = Constraint(m.kx, rule=path_constraint_fn)
+m.path_constraint.deactivate()
 
 # Objective function
 def obj_min_acc_fn(m):
@@ -92,14 +93,21 @@ m.obj = Objective(rule=obj_min_acc_fn)
 # Solve
 opt = SolverFactory('ipopt')
 
+
+
 mid_time = time.time()
 results = opt.solve(m)
 end_time = time.time()
+m.path_constraint.activate()
+results = opt.solve(m)
+end2_time = time.time()
 
 setup_time = mid_time - start_time
 exec_time = end_time - mid_time
+exec2_time = end2_time - mid_time
 print("Setup time: %f s" % setup_time)
 print("Solve time: %f s" % exec_time)
+print("Solve2 time: %f s" % exec2_time)
 
 # Graph x and u
 x = [value(m.x[_X,k]) for k in range(0,N+1)]
