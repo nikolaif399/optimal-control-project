@@ -26,7 +26,7 @@ N = 1000
 T = 10
 dt = T/N
 
-obsx = 12
+obsx = -3
 obsy = 0
 obsr = 1
 obsr2 = pow(obsr, 2)
