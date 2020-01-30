@@ -26,6 +26,11 @@ N = 1000
 T = 10
 dt = T/N
 
+obsx = 12
+obsy = 0
+obsr = 1
+obsr2 = pow(obsr, 2)
+
 m = ConcreteModel()
 
 # Store indexing in model
@@ -43,7 +48,7 @@ m.umin = Param(m.controls, initialize={_A:-5, _W:-5})
 m.umax = Param(m.controls, initialize={_A: 5, _W: 5})
 
 m.ic = Param(m.states, initialize=0)
-m.fc = Param(m.states, initialize={_X:20, _Y:10, _TH:0, _PH:0, _V:0})
+m.fc = Param(m.states, initialize={_X:10, _Y:10, _TH:np.pi/2, _PH:0, _V:0})
 
 # State Variables
 m.x = Var(m.states, m.kx, bounds = lambda m,i,k: (m.xmin[i], m.xmax[i]), initialize = 0)
@@ -52,7 +57,7 @@ m.fcfix = Constraint(m.states, rule = lambda m,i: m.x[i,N] == m.fc[i])
 
 # Control Variables
 m.u = Var(m.controls, m.ku, bounds=lambda m,j,k: (m.umin[j], m.umax[j]), initialize=0)
-m.wu = {_A:5, _W:1}
+m.wu = {_A:5, _W:10}
 
 # State update constraints
 def x_update_fn(m,k,i):
@@ -63,9 +68,16 @@ def x_update_fn(m,k,i):
   if (i == _TH): return (m.x[_TH,k+1] == m.x[_TH,k] + m.x[_V,k]*tan(m.x[_PH,k])/L * dt) 
   if (i == _PH): return (m.x[_PH,k+1] == m.x[_PH,k] + m.u[_W,k]*dt)
   if (i == _V): return  (m.x[_V, k+1] == m.x[_V, k] + m.u[_A,k]*dt) 
-  #return Constraint.Skip
 
 m.x_update = Constraint(m.kx, m.states, rule=x_update_fn)
+
+# Path constraints
+def path_constraint_fn(m,k):
+  xerror = (obsx - m.x[_X,k])
+  yerror = (obsy - m.x[_Y,k])
+  return (pow(xerror, 2) + pow(yerror, 2) >= obsr2)
+
+#m.path_constraint = Constraint(m.kx, rule=path_constraint_fn)
 
 # Objective function
 def obj_min_acc_fn(m):
