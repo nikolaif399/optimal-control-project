@@ -31,14 +31,17 @@ obsy = 2
 obsr = 3
 obsr2 = pow(obsr, 2)
 
+num_obs = 3
+
 m = ConcreteModel()
 
 # Store indexing in model
-m.states = RangeSet(1,nx) # i
-m.controls = RangeSet(1,nu) # j
+m.states = RangeSet(1,nx)  # i
+m.controls = RangeSet(1,nu)  # j
 
-m.kx = RangeSet(0,N) # k
-m.ku = RangeSet(0,N-1)
+m.kx = RangeSet(0, N)  # k
+m.ku = RangeSet(0, N-1)
+m.ko = RangeSet(1, num_obs)
 
 # Parameters
 m.xmin = Param(m.states, initialize = {_X:-100, _Y:-100, _TH:-4*np.pi, _PH:-2*np.pi/3, _V:-10})
@@ -46,6 +49,15 @@ m.xmax = Param(m.states, initialize = {_X: 100, _Y: 100, _TH: 4*np.pi, _PH: 2*np
 
 m.umin = Param(m.controls, initialize={_A:-5, _W:-5})
 m.umax = Param(m.controls, initialize={_A: 5, _W: 5})
+
+m.pprint()
+def init_obstacles(m, i):
+  print(i)
+  if (i == 1): return {1:2, 3:4}
+  if (i == 2): return {3:5, 2:4}
+  if (i == 3): return {1:2, 3:4}
+
+m.obs = Param(m.ko, initialize=init_obstacles)
 
 m.ic = Param(m.states, initialize=0)
 m.fc = Param(m.states, initialize={_X:10, _Y:10, _TH:np.pi/2, _PH:0, _V:0})
@@ -65,7 +77,7 @@ def x_update_fn(m,k,i):
 
   if  (i == _X): return (m.x[_X, k+1] == m.x[_X, k] + m.x[_V,k]*cos(m.x[_TH,k]) * dt)
   if  (i == _Y): return (m.x[_Y, k+1] == m.x[_Y, k] + m.x[_V,k]*sin(m.x[_TH,k]) * dt)
-  if (i == _TH): return (m.x[_TH,k+1] == m.x[_TH,k] + m.x[_V,k]*tan(m.x[_PH,k])/L * dt) 
+  if (i == _TH): return (m.x[_TH,k+1] == m.x[_TH,k] + m.x[_V,k]*tan(m.x[_PH,k])/L * dt)
   if (i == _PH): return (m.x[_PH,k+1] == m.x[_PH,k] + m.u[_W,k]*dt)
   if (i == _V): return  (m.x[_V, k+1] == m.x[_V, k] + m.u[_A,k]*dt) 
 
