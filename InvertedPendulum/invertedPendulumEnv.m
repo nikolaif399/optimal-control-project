@@ -42,7 +42,10 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
     
     properties(Access = protected)
         % Initialize internal flag to indicate episode termination
-        IsDone = false        
+        IsDone = false
+        
+        % Handle to figure
+        Figure
     end
 
     %% Necessary Methods
@@ -115,16 +118,16 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
         
         % Reset environment to initial state and output initial observation
         function InitialObservation = reset(this)
-            % Theta (+- .05 rad)
-            T0 = 2 * 0.05 * rand - 0.05;  
-            % Thetadot
-            Td0 = 0;
             % X 
             X0 = 0;
             % Xdot
             Xd0 = 0;
+            % Theta (+- .05 rad)
+            T0 = 0.2;%2 * 0.05 * rand - 0.05;  
+            % Thetadot
+            Td0 = 0;
             
-            InitialObservation = [T0;Td0;X0;Xd0];
+            InitialObservation = [X0;Xd0;T0;Td0;];
             this.State = InitialObservation;
             
             % (optional) use notifyEnvUpdated to signal that the 
@@ -157,6 +160,16 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
         % (optional) Visualization method
         function plot(this)
             % Initiate the visualization
+            this.Figure = figure('Visible','on','HandleVisibility','off');
+            
+            ha = gca(this.Figure);
+            ha.XLimMode = 'manual';
+            ha.YLimMode = 'manual';
+            
+            ha.XLim = [-3 3];
+            ha.YLim = [-1.5 1.5];
+            
+            hold(ha, 'on');
             
             % Update the visualization
             envUpdatedCallback(this)
@@ -216,6 +229,55 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
         % (optional) update visualization everytime the environment is updated 
         % (notifyEnvUpdated is called)
         function envUpdatedCallback(this)
+            if ~isempty(this.Figure) && isvalid(this.Figure)
+                % Set visualization figure as the current figure
+                ha = gca(this.Figure);
+
+                % Extract the cart position and pole angle
+                x = this.State(1);
+                theta = this.State(3);
+                
+
+                cartplot = findobj(ha,'Tag','cartplot');
+                poleplot = findobj(ha,'Tag','poleplot');
+                if isempty(cartplot) || ~isvalid(cartplot) ...
+                        || isempty(poleplot) || ~isvalid(poleplot)
+                    % Initialize the cart plot
+                    cartpoly = polyshape([-0.25 -0.25 0.25 0.25],[-0.125 0.125 0.125 -0.125]);
+                    cartpoly = translate(cartpoly,[x 0]);
+                    cartplot = plot(ha,cartpoly,'FaceColor',[0.8500 0.3250 0.0980]);
+                    cartplot.Tag = 'cartplot';
+
+                    % Initialize the pole plot
+                    L = this.HalfPoleLength*2;
+                    polepoly = polyshape([-0.1 -0.1 0.1 0.1],[0 L L 0]);
+                    polepoly = translate(polepoly,[x,0]);
+                    polepoly = rotate(polepoly,rad2deg(-theta),[x,0]);
+                    poleplot = plot(ha,polepoly,'FaceColor',[0 0.4470 0.7410]);
+                    poleplot.Tag = 'poleplot';
+                else
+                    cartpoly = cartplot.Shape;
+                    polepoly = poleplot.Shape;
+                end
+
+                % Compute the new cart and pole position
+                [cartposx,~] = centroid(cartpoly);
+                [poleposx,poleposy] = centroid(polepoly);
+                dx = x - cartposx;
+                dtheta = -theta - atan2(cartposx-poleposx,poleposy-0.25/2);
+                cartpoly = translate(cartpoly,[dx,0]);
+                polepoly = translate(polepoly,[dx,0]);
+                polepoly = rotate(polepoly,rad2deg(dtheta),[x,0.25/2]);
+
+                % Update the cart and pole positions on the plot
+                cartplot.Shape = cartpoly;
+                poleplot.Shape = polepoly;
+
+                % Refresh rendering in the figure window
+                drawnow();
+            else
+                plot(this);
+            end
         end
     end
 end
