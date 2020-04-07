@@ -1,32 +1,51 @@
-classdef invertedPendulumEnv < rl.env.MATLABEnvironment
-    %INVERTEDPENDULUMENV: Template for defining custom environment in MATLAB.    
+classdef leggedRobotEnv < rl.env.MATLABEnvironment
+    %LEGGEDROBOTENV: Template for defining custom environment in MATLAB.    
     
     %% Properties (set properties' attributes accordingly)
     properties
-        % Specify and initialize environment's necessary properties    
+        % Specify and initialize environment's necessary properties   
+        
         % Acceleration due to gravity in m/s^2
         Gravity = 9.81
-        
-        % Mass of the cart
-        CartMass = 1.0
-        
-        % Mass of the pole
-        PoleMass = 0.1
-        
-        % Half the length of the pole
-        HalfPoleLength = 0.5
-        
-        % Max Force the input can apply
-        MaxForce = 10
-               
+            
         % Sample time
-        Ts = 0.02
+        Ts = 0.01
         
-        % Angle at which to fail the episode (radians)
-        AngleThreshold = 12 * pi/180
+        % Robot Physical Params
+        L_body = 0.4;
+        H_body = 0.1;
         
-        % Distance at which to fail the episode
-        DisplacementThreshold = 2.4
+        L_link1 = 0.1;
+        L_link2 = 0.2;
+        
+        % Dynamic Matrices
+        m_body = 10;
+        i_body = 1/12*m_body*(l_body^2 + l_body^2);
+        M_body = diag([m_body, m_body, i_body]);
+        J_body = 0;
+        
+        
+        m_link1 = 0.5;
+        i_link1 = 1/12*m_link1*l_link1^2;
+        M_link1 = diag([m_link1, m_link1, i_link1]);
+        J_link1_front = 0;
+        J_link1_back = 0;
+        
+        m_link2 = 0.3;
+        i_link2 = 1/12*m_link2*l_link2^2;
+        M_link2 = diag([m_link2, m_link2, i_link2]);
+        J_link2_front = 0;
+        J_link2_back = 0;
+        
+        M = J_body' * M_body * J + ...
+            J_link1_back' * M_link1 * J_link1_back + ...
+            J_link2_back' * M_link2 * J_link2_back + ...
+            J_link1_front' * M_link1 * J_link1_front + ...
+            J_link2_front' * M_link2 * J_link2_front;
+        
+        q = sym('q', [7 1]);
+        dq = sym('dq', [7 1]);
+        C = get_coriolis_matrix(M,q,dq);
         
         % Reward each time step the cart-pole is balanced
         RewardForNotFalling = 1
@@ -52,8 +71,7 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
     methods              
         % Contructor method creates an instance of the environment
         % Change class name and constructor name accordingly
-        function this = invertedPendulumEnv()
-            
+        function this = leggedRobotEnv()
             
             % Initialize Observation settings
             numObs = 4;
@@ -72,7 +90,7 @@ classdef invertedPendulumEnv < rl.env.MATLABEnvironment
             % Initialize property values and pre-compute necessary values
             updateActionInfo(this);
         end
-        
+
         % Apply system dynamics and simulates the environment with the 
         % given action for one step.
         function [Observation,Reward,IsDone,LoggedSignals] = step(this,Action)
