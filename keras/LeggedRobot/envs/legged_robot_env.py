@@ -2,6 +2,7 @@ import gym
 from gym import spaces
 import numpy as np
 import pybullet as pb
+import pybullet_utils.bullet_client as bc
 import pybullet_data
 
 class LeggedRobotEnv(gym.Env):
@@ -15,8 +16,8 @@ class LeggedRobotEnv(gym.Env):
 
     # Setup PyBullet Environment for dynamics simulation
     clientId = pb.GUI if render else pb.DIRECT
-    self.physicsClient = pb.connect(clientId)
-    pb.setAdditionalSearchPath(pybullet_data.getDataPath())  # used by loadURDF
+    self.physicsClient = bc.BulletClient(connection_mode=clientId)#pb.connect(clientId)
+    self.physicsClient.setAdditionalSearchPath(pybullet_data.getDataPath())  # used by loadURDF
 
     self.jointIds = np.array([0,1,2,3,4,5,6,7,8,9,10,11]) # Figure out what the correct motor IDS are
     self.appliedTorques = np.zeros((self.num_joints,1))
@@ -24,7 +25,8 @@ class LeggedRobotEnv(gym.Env):
     # Setup gym environment specifics
     self.min_torque = -10*np.ones((self.num_joints,1))
     self.max_torque = 10*np.ones((self.num_joints,1))
-    self.action_space = spaces.Box(low=self.min_torque, high=self.max_torque, dtype=np.float32)
+
+    self.action_space = spaces.Box(low=self.min_torque, high=self.max_torque, dtype=np.float64)
     
     min_pos = np.array([-np.inf, -np.inf, 0]).reshape((3,1))
     min_vel = np.array([-np.inf, -np.inf, -np.inf]).reshape((3,1))
@@ -42,21 +44,32 @@ class LeggedRobotEnv(gym.Env):
 
     self.min_obs = np.vstack((min_pos, min_vel, min_ori, min_ang_vel, min_joint_ang, min_joint_vel, self.min_torque))
     self.max_obs = np.vstack((max_pos, max_vel, max_ori, max_ang_vel, max_joint_ang, max_joint_vel, self.max_torque))
-    self.observation_space = spaces.Box(low=self.min_obs, high=self.max_obs, dtype=np.float32)
+    self.observation_space = spaces.Box(low=self.min_obs, high=self.max_obs, dtype=np.float64)
     self.observation = []
     
     self.stepCount = 0
-    self.seed()
+
+
+  def scaleAction(self, action):
+    # Action scaled from -1 to 1 (tanh output layer)
+
+    scaling_factor = (self.max_torque-self.min_torque)/2
+    return self.min_torque + np.multiply(1+action.reshape(self.num_joints,1), scaling_factor )
 
   def step(self, action):
     # Execute one time step within the environment
+    print(self.computeObservation())
+    print(action)
+    
+    self.appliedTorques = self.scaleAction(action)
+    
 
-    self.appliedTorques = action
-    pb.setJointMotorControlArray(self.robotId,
+    self.physicsClient.setJointMotorControlArray(self.robotId,
                                  self.jointIds,
                                  pb.TORQUE_CONTROL,
                                  forces=self.appliedTorques)
-    pb.stepSimulation()
+
+    self.physicsClient.stepSimulation()
     self.stepCount += 1
 
     observation = self.computeObservation()
@@ -72,41 +85,48 @@ class LeggedRobotEnv(gym.Env):
   def reset(self):
     # Reset the state of the environment to an initial state
     
-    pb.resetSimulation()
-    pb.setGravity(0,0,-9.81)
-    pb.setTimeStep(0.01)
+    self.physicsClient.resetSimulation()
+    self.physicsClient.setGravity(0,0,-9.81)
+    self.physicsClient.setTimeStep(0.01)
 
     robotStartPos = [0,0,0.2]
-    robotStartOrn = pb.getQuaternionFromEuler([0,0,0])
-    self.robotId = pb.loadURDF("models/spirit40.urdf", robotStartPos, robotStartOrn)
+    robotStartOrn = self.physicsClient.getQuaternionFromEuler([0,0,0])
+    self.robotId = self.physicsClient.loadURDF("models/spirit40.urdf", robotStartPos, robotStartOrn)
 
-    planeId = pb.loadURDF("plane.urdf")
+    self.planeId = self.physicsClient.loadURDF("plane.urdf")
+
+    for joint_id in self.jointIds:
+        self.physicsClient.resetJointState(self.robotId,
+                                           joint_id,
+                                           0,
+                                           targetVelocity=0
+                                          )
 
     return self.computeObservation()
 
   def getBasePosition(self):
-    robotPos,_ = pb.getBasePositionAndOrientation(self.robotId)
+    robotPos,_ = self.physicsClient.getBasePositionAndOrientation(self.robotId)
     return np.array(robotPos).reshape(3,1)
 
   def getBaseLinVel(self):
-    robotLinVel, _ = pb.getBaseVelocity(self.robotId)
+    robotLinVel, _ = self.physicsClient.getBaseVelocity(self.robotId)
     return np.array(robotLinVel).reshape(3,1)
 
   def getBaseOrientation(self):
-    _, robotAngQuat = pb.getBasePositionAndOrientation(self.robotId)
-    robotAng = pb.getEulerFromQuaternion(robotAngQuat)
+    _, robotAngQuat = self.physicsClient.getBasePositionAndOrientation(self.robotId)
+    robotAng = self.physicsClient.getEulerFromQuaternion(robotAngQuat)
     return np.array(robotAng).reshape(3,1)
 
   def getBaseAngVel(self):
-    _, robotAngVel = pb.getBaseVelocity(self.robotId)
+    _, robotAngVel = self.physicsClient.getBaseVelocity(self.robotId)
     return np.array(robotAngVel).reshape(3,1)
 
   def getJointPositions(self):
-    joint_angles = [pb.getJointState(self.robotId, jointId)[0] for jointId in self.jointIds]
+    joint_angles = [self.physicsClient.getJointState(self.robotId, jointId)[0] for jointId in self.jointIds]
     return np.array(joint_angles).reshape(self.num_joints,1)
 
   def getJointVelocities(self):
-    joint_velocities = [pb.getJointState(self.robotId, jointId)[1] for jointId in self.jointIds]
+    joint_velocities = [self.physicsClient.getJointState(self.robotId, jointId)[1] for jointId in self.jointIds]
     return np.array(joint_velocities).reshape(self.num_joints,1)
 
   def computeObservation(self):
@@ -116,15 +136,10 @@ class LeggedRobotEnv(gym.Env):
     angVel = self.getBaseAngVel()
     jointPos = self.getJointPositions()
     jointVel = self.getJointVelocities()
-    """
-    print(linPos)
-    print(linVel)
-    print(angPos)
-    print(angVel)
-    print(jointPos)
-    print(jointVel)
-    """
-    return np.vstack((linPos, linVel, angPos, angVel, jointPos, jointVel, self.appliedTorques.reshape(12,1)))
+
+    observation = np.vstack((linPos, linVel, angPos, angVel, jointPos, jointVel, self.appliedTorques.reshape(12,1)))
+    
+    return observation
 
   def computeReward(self):
     linPos = self.getBasePosition()
@@ -137,7 +152,9 @@ class LeggedRobotEnv(gym.Env):
     pitch = angPos[1]
     torques = self.appliedTorques
 
-    reward = 100*xVel - 1*(roll**2 + pitch**2) - 0.01*np.sum(torques**2)
+    reward_arr = 100*xVel - 1*(roll**2 + pitch**2) - 0.01*np.sum(torques**2)
+    reward = reward_arr.item()
+
     return reward
   
   def computeDone(self):
