@@ -51,16 +51,15 @@ class LeggedRobotEnv(gym.Env):
 
 
   def scaleAction(self, action):
-    # Action scaled from -1 to 1 (tanh output layer)
+    # Action scaled from ~ -1 to 1 (sigmoid output layer, random noise attached for exploration)
+    action_column = action.reshape(self.num_joints,1)
+    action_clipped = np.clip(action_column, 0, 1)
 
-    scaling_factor = (self.max_torque-self.min_torque)/2
-    return self.min_torque + np.multiply(1+action.reshape(self.num_joints,1), scaling_factor )
+    scaling_factor = (self.max_torque-self.min_torque)
+    return self.min_torque + np.multiply(action_clipped, scaling_factor)
 
   def step(self, action):
     # Execute one time step within the environment
-    print(self.computeObservation())
-    print(action)
-    
     self.appliedTorques = self.scaleAction(action)
     
 

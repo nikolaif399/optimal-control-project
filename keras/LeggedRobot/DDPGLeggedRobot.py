@@ -12,8 +12,6 @@ from rl.memory import SequentialMemory
 
 from envs.legged_robot_env import LeggedRobotEnv
 
-test_actor = True
-
 def main():
 
 	np.random.seed(123)
@@ -36,63 +34,6 @@ def main():
 	actor.add(Activation('sigmoid'))
 	plot_model(actor, to_file='plots/actor.png', show_shapes=True)
 	print(actor.summary())
-
-	if (test_actor):
-		actor.load_weights("weights/legged_robot_ddpg_weights_actor.h5f")
-		x = np.array([[-6.23736334e-08],
-					 [-2.03309437e-07],
-					 [ 1.97399179e-01],
-					 [-6.23736334e-06],
-					 [-2.03309437e-05],
-					 [-1.73903108e-01],
-					 [ 5.55218035e-03],
-					 [-1.73856866e-03],
-					 [-4.28090865e-06],
-					 [ 3.61358288e-01],
-					 [-1.15324906e-01],
-					 [ 4.85251444e-05],
-					 [-1.62067152e-07],
-					 [ 0.00000000e+00],
-					 [-7.86601299e-08],
-					 [ 0.00000000e+00],
-					 [ 4.16077794e-07],
-					 [ 2.90905541e-07],
-					 [ 5.48785523e-07],
-					 [ 0.00000000e+00],
-					 [ 1.84871025e-06],
-					 [-6.88562149e-08],
-					 [-4.92839454e-10],
-					 [ 0.00000000e+00],
-					 [-7.65393652e-06],
-					 [ 0.00000000e+00],
-					 [-3.43654177e-06],
-					 [ 0.00000000e+00],
-					 [ 1.98390255e-05],
-					 [ 1.37557055e-05],
-					 [ 2.58356920e-05],
-					 [ 0.00000000e+00],
-					 [ 8.71664840e-05],
-					 [-3.18024553e-06],
-					 [-2.19911729e-08],
-					 [ 0.00000000e+00],
-					 [ 5.52796125e-01],
-					 [ 9.95747209e+00],
-					 [ 1.06311560e+01],
-					 [ 9.13203239e+00],
-					 [-1.19774938e-01],
-					 [ 9.58176970e+00],
-					 [ 9.57453370e+00],
-					 [ 4.69361544e-01],
-					 [-2.52103209e-01],
-					 [ 3.65097523e-01],
-					 [ 2.15576887e-01],
-					 [-1.06084347e-01]])
-		#scale = 1000000000000000000000
-		#x = scale*np.random.randn(1,1,48,1)
-		x = x.reshape((1,1,48,1))
-		action = actor.predict(x)
-		print(action)
-		return
 
 	# Build Q-Function Model (Critic)
 	action_input = Input(shape=(n_act,), name='action_input')
