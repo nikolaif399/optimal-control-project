@@ -10,14 +10,14 @@ from rl.agents.ddpg import DDPGAgent
 from rl.random import OrnsteinUhlenbeckProcess
 from rl.memory import SequentialMemory
 
-from envs.legged_robot_env import LeggedRobotEnv
+from envs.spirit_env import SpiritEnv
 
 def main():
 
 	np.random.seed(123)
 
 	# Get the environment and extract the number of actions.
-	train_env = LeggedRobotEnv(False)
+	train_env = SpiritEnv(False)
 	train_env.seed(123)
 
 	n_act = train_env.action_space.shape[0]
@@ -26,12 +26,14 @@ def main():
 	# Build Policy Model (Actor)
 	actor = Sequential()
 	actor.add(Flatten(input_shape=(1,) + obs_shape))
-	actor.add(Dense(400))
+	actor.add(Dense(100))
 	actor.add(Activation('relu'))
-	actor.add(Dense(300))
+	actor.add(Dense(100))
+	actor.add(Activation('relu'))
+	actor.add(Dense(100))
 	actor.add(Activation('relu'))
 	actor.add(Dense(n_act))
-	actor.add(Activation('sigmoid'))
+	actor.add(Activation('tanh'))
 	plot_model(actor, to_file='plots/actor.png', show_shapes=True)
 	print(actor.summary())
 
@@ -39,10 +41,10 @@ def main():
 	action_input = Input(shape=(n_act,), name='action_input')
 	observation_input = Input(shape=(1,) + train_env.observation_space.shape, name='observation_input')
 	flattened_observation = Flatten()(observation_input)
-	x = Dense(400)(flattened_observation)
+	x = Dense(200)(flattened_observation)
 	x = Activation('relu')(x)
 	x = Concatenate()([x, action_input])
-	x = Dense(300)(x)
+	x = Dense(200)(x)
 	x = Activation('relu')(x)
 	x = Dense(1)(x)
 	x = Activation('linear')(x)
@@ -61,10 +63,10 @@ def main():
 
 
 	agent.fit(train_env, nb_steps=500, visualize=False, verbose=2)
-	agent.save_weights('weights/legged_robot_ddpg_weights.h5f', overwrite=True)
+	actor.save('models/legged_robot_ddpg_weights.h5', overwrite=True)
 
 
-	#test_env = LeggedRobotEnv(True)
+	#test_env = SpiritEnv(True)
 	#test_env.seed(123)
 	#agent.test(test_env, nb_episodes=5, visualize=False)
 
