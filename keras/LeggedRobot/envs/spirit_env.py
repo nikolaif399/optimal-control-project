@@ -66,7 +66,7 @@ class SpiritEnv(gym.Env):
     self.stepCount = 0
 
 
-  def scaleAction(self, action):
+  def action2Torques(self, action):
     # Action scaled from ~ -1 to 1 (tanh output layer, random noise attached for exploration)
     action_column = action.reshape(self.num_acts,1)
     action_clipped = np.clip(action_column, -1, 1)
@@ -89,7 +89,7 @@ class SpiritEnv(gym.Env):
                                  targetPositions=action[4:8,:])
     
     else:
-      self.appliedTorques = self.scaleAction(action)
+      self.appliedTorques = self.action2Torques(action)
       hipTorques = self.appliedTorques[0:4,:]
       kneeTorques = self.appliedTorques[4:8,:]
       
